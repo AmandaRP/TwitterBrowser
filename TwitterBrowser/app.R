@@ -10,7 +10,7 @@
 library(shiny)
 library(rtweet)
 library(tidyverse)
-token <- readRDS("~/twitter_token.rds")
+token <- readRDS("twitter_token.rds")
 #blogdown::shortcode('tweet', favorites[[1,"status_id"]])
 
 
