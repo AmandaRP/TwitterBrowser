@@ -7,6 +7,8 @@
 #    http://shiny.rstudio.com/
 #
 
+#TODO: Add a tab for bookmarks (when that API is ready)
+
 library(shiny)
 library(rtweet)
 library(tidyverse)
