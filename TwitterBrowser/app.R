@@ -12,47 +12,50 @@
 library(shiny)
 library(rtweet)
 library(tidyverse)
+library(tidytext)
+library(wordcloud2)
 token <- readRDS("twitter_token.rds")
-#blogdown::shortcode('tweet', favorites[[1,"status_id"]])
-
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-   
-   # Application title
-   titlePanel("Twitter <3 Browser"),
-   
-   
-   # Sidebar with a slider input for number of bins 
-   sidebarLayout(
-      sidebarPanel(
-        
-        textInput("user", "Twitter handle: ", value = "DrAmandaRP"),
-        
-         sliderInput("n",
-                     "How many of the user's most recent Twitter likes would you like to retrieve?",
-                     min = 1,
-                     max = 3000,
-                     value = 100)
-      ),
+  
+  # Application title
+  titlePanel("Amanda's Twitter <3 Browser"),
+  
+  
+  # Sidebar with a slider input for number of bins 
+  sidebarLayout(
+    sidebarPanel(
       
-      
-      mainPanel(
-        #img(src='twitterlogo_small.png')
-        div(img(src='twitterlogo_small.png'), style="text-align: center;"),
-        dataTableOutput("favoritesTable")
-      )
-   )
+      sliderInput("n",
+                  "How many of the user's most recent Twitter likes would you like to retrieve?",
+                  min = 1,
+                  max = 3000,
+                  value = 100),
+      wordcloud2Output("favs_wordcloud")
+    ),
+    
+    
+    mainPanel(
+      #img(src='twitterlogo_small.png')
+      div(img(src='twitterlogo_small.png'), style="text-align: center;"),
+      dataTableOutput("favoritesTable")
+    )
+  )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-   
+  
+  favorites <- reactive({
+     get_favorites("DrAmandaRP", n = input$n, since_id = "469871753381302272", token = token)
+  })
+  
   output$favoritesTable <- renderDataTable({
+  
+    #get_favorites("DrAmandaRP", n = input$n, since_id = "469871753381302272", token = token)
     
-    favorites <- get_favorites(input$user, n = input$n, since_id = "469871753381302272", token = token)
-    
-    favorites %>% 
+    favorites() %>% 
       select(status_id, created_at, text, hashtags, name, screen_name) %>%
       mutate(hashtags = replace(hashtags, is.na(hashtags), " ")) %>%
       mutate(hashtags = map(hashtags, ~paste0(., collapse = " "))) %>%
@@ -62,8 +65,20 @@ server <- function(input, output) {
       mutate(created_at = as.character(created_at)) %>%
       rename(Date = created_at, Text = text, Hashtags = hashtags, Name = name, Handle = screen_name)
   })
+  
+  output$favs_wordcloud <- renderWordcloud2({
+    
+    #favorites <- get_favorites("DrAmandaRP", n = input$n, since_id = "469871753381302272", token = token)
+    
+    favorites() %>% 
+        select(text) %>%
+        unnest_tokens(word, text) %>%
+        count(word, sort = TRUE) %>%
+        anti_join(stop_words) %>%
+        filter(!word %in% c("t.co", "https", "http")) %>%
+        wordcloud2(shape = "rectangle")
+  })
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
